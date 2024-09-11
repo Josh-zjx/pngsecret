@@ -1,10 +1,13 @@
 use image::RgbaImage;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 use structopt::StructOpt;
 
 // TODO: Should find better name
 #[derive(Debug, Clone)]
 struct ReaderError;
+
+static SILENT: OnceLock<bool> = OnceLock::new();
 
 #[derive(Debug, StructOpt)]
 #[structopt(
@@ -12,15 +15,13 @@ struct ReaderError;
     about = "A simple tool to embed secret bytes to png images"
 )]
 struct Opt {
-    /*
-    #[structopt(short, long)]
+    #[structopt(short, long, help = "reduce stdout print")]
     silent: bool,
-    */
+
     #[structopt(short, long, help = "default to decode if not set")]
     encode: bool,
 
     #[structopt(
-        short,
         long,
         default_value = "Hello World",
         help = "the secret you want to embed"
@@ -41,11 +42,17 @@ struct Opt {
 
 fn main() {
     let opt = Opt::from_args();
+    if opt.silent && SILENT.set(opt.silent).is_err() {
+        println!("cannot set global variable silent!");
+        return;
+    }
 
     if let Ok(img) = image::open(&opt.input) {
         if opt.encode {
             let output_filename = get_output_filename(&opt);
-            println!("output filename {:?}", output_filename);
+            if SILENT.get().is_none() {
+                println!("output filename {:?}", output_filename);
+            }
             let mut writer = PngSecretWriter::new(img.into_rgba8(), Box::new(NaiveEncoder::new()));
             writer.encoder.encode(opt.text.as_bytes());
             writer.write_image(output_filename);
@@ -53,7 +60,9 @@ fn main() {
             let mut reader = PngSecretReader::new(img.into_rgba8(), Box::new(NaiveDecoder::new()));
             if let Ok(raw_message) = reader.read_image() {
                 if let Ok(message) = String::from_utf8(raw_message.clone()) {
-                    println!("Here is the message:");
+                    if SILENT.get().is_none() {
+                        println!("Here is the message:");
+                    }
                     println!("{:}", message);
                 } else {
                     println!("The message cannot printed as string!");
@@ -101,12 +110,14 @@ struct PngSecretWriter {
 
 impl PngSecretWriter {
     fn new(img: RgbaImage, encoder: Box<dyn PngSecretEncoder>) -> Self {
-        println!(
-            "Image width {:}, Image Height {:}, message length limit {:} bytes",
-            img.width(),
-            img.height(),
-            img.width() * img.height() / 2 - 1,
-        );
+        if SILENT.get().is_none() {
+            println!(
+                "Image width {:}, Image Height {:}, message length limit {:} bytes",
+                img.width(),
+                img.height(),
+                img.width() * img.height() / 2 - 1,
+            );
+        }
         PngSecretWriter {
             buffer: img,
             encoder,
@@ -116,7 +127,7 @@ impl PngSecretWriter {
         let text = self.encoder.get_text();
         if (self.buffer.width() * self.buffer.height()) < text.len() as u32 {
             // TODO: Should find more elegant way to handle this error
-            panic!("You are writing more message than the image could support!");
+            println!("You are writing more message than the image could support!");
         }
         let mut text_iter = text.iter().flat_map(byte_to_8bits);
         for i in self.buffer.iter_mut() {
@@ -127,7 +138,9 @@ impl PngSecretWriter {
             }
         }
         if self.buffer.save(output_filename.clone()).is_ok() {
-            println!("Writing modified image to file {:?}", output_filename);
+            if SILENT.get().is_none() {
+                println!("Writing modified image to file {:?}", output_filename);
+            }
         } else {
             println!("saving file failure");
         }
@@ -141,11 +154,13 @@ struct PngSecretReader {
 
 impl PngSecretReader {
     fn new(img: RgbaImage, decoder: Box<dyn PngSecretDecoder>) -> Self {
-        println!(
-            "Image width {:}, Image Height {:}",
-            img.width(),
-            img.height()
-        );
+        if SILENT.get().is_none() {
+            println!(
+                "Image width {:}, Image Height {:}",
+                img.width(),
+                img.height()
+            );
+        }
         PngSecretReader {
             buffer: img,
             decoder,
@@ -185,6 +200,7 @@ trait PngSecretDecoder {
     fn decode(&mut self, seq: Vec<u8>) -> Vec<u8>;
 }
 
+// WARN: Is the data member really needed?
 struct NaiveEncoder {
     text: Vec<u8>,
 }
