@@ -233,3 +233,53 @@ impl NaiveEncoder {
         NaiveEncoder { text: Vec::new() }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn naive_encoder_correct_normal() {
+        let raw_message = "Hello World!";
+        let mut encoder = NaiveEncoder::new();
+        encoder.encode(raw_message.as_bytes());
+        let mut expected_message = Vec::from(raw_message.as_bytes());
+        let encode_message = encoder.get_text();
+        expected_message.push(0);
+        println!("{:?} {:?}", expected_message, encode_message);
+        assert!(expected_message
+            .iter()
+            .zip(encode_message.iter())
+            .all(|(a, b)| a == b));
+    }
+
+    #[test]
+    fn naive_encoder_correct_empty() {
+        let raw_message = "";
+        let mut encoder = NaiveEncoder::new();
+        encoder.encode(raw_message.as_bytes());
+        let mut expected_message = Vec::from(raw_message.as_bytes());
+        let encode_message = encoder.get_text();
+        expected_message.push(0);
+        println!("{:?} {:?}", expected_message, encode_message);
+        assert!(expected_message
+            .iter()
+            .zip(encode_message.iter())
+            .all(|(a, b)| a == b));
+    }
+
+    #[test]
+    fn naive_encoder_correct_long() {
+        let raw_message = "Under the surface, the assert_eq! and assert_ne! macros use the operators == and !=, respectively. When the assertions fail, these macros print their arguments using debug formatting, which means the values being compared must implement the PartialEq and Debug traits. All primitive types and most of the standard library types implement these traits. For structs and enums that you define yourself, you’ll need to implement PartialEq to assert equality of those types. You’ll also need to implement Debug to print the values when the assertion fails. Because both traits are derivable traits, as mentioned in Listing 5-12 in Chapter 5, this is usually as straightforward as adding the #[derive(PartialEq, Debug)] annotation to your struct or enum definition. See Appendix C, “Derivable Traits,” for more details about these and other derivable traits.";
+        let mut encoder = NaiveEncoder::new();
+        encoder.encode(raw_message.as_bytes());
+        let mut expected_message = Vec::from(raw_message.as_bytes());
+        let encode_message = encoder.get_text();
+        expected_message.push(0);
+        println!("{:?} {:?}", expected_message, encode_message);
+        assert!(expected_message
+            .iter()
+            .zip(encode_message.iter())
+            .all(|(a, b)| a == b));
+    }
+}
