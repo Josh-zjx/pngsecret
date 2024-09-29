@@ -237,6 +237,7 @@ impl NaiveEncoder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use quickcheck::quickcheck;
 
     #[test]
     fn naive_encoder_correct_normal() {
@@ -281,5 +282,28 @@ mod tests {
             .iter()
             .zip(encode_message.iter())
             .all(|(a, b)| a == b));
+    }
+    quickcheck! {
+        fn naive_encoder_length(message:String)->bool {
+            let raw_message = message;
+            let mut encoder = NaiveEncoder::new();
+            encoder.encode(raw_message.as_bytes());
+            let mut expected_message = Vec::from(raw_message.as_bytes());
+            expected_message.push(0);
+            let encode_message = encoder.get_text();
+            return encode_message.len() == expected_message.len() ;
+
+        }
+
+        fn naive_encoder_content(message: String)->bool {
+            let raw_message = message;
+            let mut encoder = NaiveEncoder::new();
+            encoder.encode(raw_message.as_bytes());
+            let mut expected_message = Vec::from(raw_message.as_bytes());
+            expected_message.push(0);
+            let encode_message = encoder.get_text();
+            return expected_message.iter().zip(encode_message.iter()).all(|(a, b)| a== b) ;
+        }
+
     }
 }
