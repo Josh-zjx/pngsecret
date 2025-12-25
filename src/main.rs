@@ -706,7 +706,7 @@ mod tests {
             let mut expected_message = Vec::from(raw_message.as_bytes());
             expected_message.push(0);
             let encode_message = encoder.get_text();
-            expected_message.iter().zip(encode_message.iter()).all(|(a, b)| a== b)
+            expected_message.iter().zip(encode_message.iter()).all(|(a, b)| a == b)
         }
 
         fn byte_to_8bits_roundtrip(byte: u8) -> bool {
